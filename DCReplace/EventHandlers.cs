@@ -104,8 +104,13 @@ namespace DCReplace
 						Log.Debug("Adding custom role: "+customRole.Name);
 						customRole.AddRole(replacement);
 					}
+					string replaceMessage = DCReplace.Instance.Config.ReplacementAnnouncement;
+					replaceMessage = replaceMessage.Replace("{PLAYER}", ev.Player.Nickname);
+					replaceMessage = replaceMessage.Replace("{ROLE}", role.ToString());
+					replaceMessage = replaceMessage.Replace("{ZONE}", ev.Player.Zone.ToString());
+					// Announce to the new player that they have been swapped in
 					
-					replacement.Broadcast(5, "<i>You have replaced a player who has disconnected.</i>");
+					replacement.Broadcast(DCReplace.Instance.Config.ReplacementAnnouncementDuration, replaceMessage);
 				});
 			}
 			else

@@ -8,6 +8,7 @@ namespace DCReplace
     public class DCReplace : Plugin<Config>
     {
         private EventHandlers ev;
+        public static DCReplace Instance;
 
         public override void OnEnabled()
         {
