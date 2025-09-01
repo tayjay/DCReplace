@@ -33,8 +33,15 @@ namespace DCReplace
 		public void OnPlayerLeave(LeftEventArgs ev)
 		{
 			
-			if (!isRoundStarted || ev.Player.Role == RoleTypeId.Spectator || ev.Player.Position.y < -1997 || (ev.Player.Zone == ZoneType.LightContainment && (Map.DecontaminationState>DecontaminationState.Remain1Minute))) return;
-			
+			if (!isRoundStarted || ev.Player.Role == RoleTypeId.Spectator || ev.Player.Position.y < -1997 ||
+			    (ev.Player.Zone == ZoneType.LightContainment &&
+			     (Map.DecontaminationState > DecontaminationState.Remain1Minute)))
+			{
+				ev.Player.DropItems();
+				Log.Debug("Player is not eligible for replacement: "+ev.Player.Nickname);
+				return;
+			}
+			Log.Debug($"Player {ev.Player.Nickname} has left the round. Attempting to replace...");
 			
 			Player replacement;
 			// Give priority to players already spectating the leaver
@@ -46,6 +53,7 @@ namespace DCReplace
 			{
 				replacement = Player.List.GetRandomValue(x => x.Role == RoleTypeId.Spectator && x.UserId != string.Empty && x.UserId != ev.Player.UserId && !x.IsOverwatchEnabled);
 			}
+			Log.Debug("Found replacement: " + (replacement != null ? replacement.Nickname : "null"));
 			
 			if (replacement != null)
 			{
@@ -59,10 +67,13 @@ namespace DCReplace
 				var customRoles = ev.Player.GetCustomRoles();
 				string uniqueRole = ev.Player.UniqueRole;
 				var role = ev.Player.Role.Type;
+				Log.Debug($"{replacement.Nickname} will replace {ev.Player.Nickname}, who was a {role} with {inventory.Count()} items, had {ammo.Keys.Count} kinds of ammo, {health} HP, had {customRoles.Count} custom roles and {effects.Count()} effects.");
 				
 				replacement.UniqueRole = uniqueRole;
-				replacement.RoleManager.ServerSetRole(role, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.None);
 				
+				replacement.RoleManager.ServerSetRole(role, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.None);
+				Log.Debug("Added unique role: "+replacement.UniqueRole);
+				Log.Debug("Set role to "+role);
 
 				Timing.CallDelayed(0.3f, () =>
 				{
@@ -71,21 +82,26 @@ namespace DCReplace
 					replacement.ResetInventory(inventory);
 					foreach (var item in inventory)
 					{
+						Log.Debug("Giving item: "+item.Type);
 						replacement.AddItem(item);
 					}
 					foreach (var ammoType in ammo.Keys)
 					{
+						Log.Debug($"Setting {ammoType} ammo to {ammo[ammoType]}");
 						replacement.Ammo[ammoType] = ammo[ammoType];
 					}
 					replacement.DisableAllEffects();
 					foreach (var effect in effects)
 					{
+						Log.Debug($"Enabling effect {effect.name} with duration {effect.Duration}");
 						replacement.EnableEffect(effect, effect.Duration);
 					}
 					replacement.Health = health;
+					Log.Debug("Set health to "+health);
 					
 					foreach(var customRole in customRoles)
 					{
+						Log.Debug("Adding custom role: "+customRole.Name);
 						customRole.AddRole(replacement);
 					}
 					
@@ -96,6 +112,7 @@ namespace DCReplace
 			{
 				//Need to make sure all items are dropped because the server is set to not do so.
 				ev.Player.DropItems();
+				Log.Debug("No replacement found for "+ev.Player.Nickname);
 			}
 		}
 		
